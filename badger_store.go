@@ -18,6 +18,7 @@ package raftbadger
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -310,6 +311,26 @@ func (b *BadgerStore) Set(key []byte, val []byte) error {
 	return b.conn.Update(func(txn *badger.Txn) error {
 		return txn.Set(append(prefixConf, key...), val)
 	})
+}
+
+// BatchKV holds the key and value for set.
+type BatchKV struct {
+	Key   []byte
+	Value []byte
+}
+
+// SetBatch is like Set but is more efficient for batches.
+func (b *BadgerStore) SetBatch(bkv []BatchKV) error {
+	wb := b.conn.NewWriteBatch()
+	for _, b := range bkv {
+		if err := wb.Set(append(prefixConf, b.Key...), b.Value); err != nil {
+			return fmt.Errorf("failed to set kv: %w", err)
+		}
+	}
+	if err := wb.Flush(); err != nil {
+		return fmt.Errorf("failed to flush batch: %w", err)
+	}
+	return nil
 }
 
 // Get is used to retrieve a value from the k/v store by key

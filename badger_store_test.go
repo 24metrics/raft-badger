@@ -362,6 +362,44 @@ func TestBadgerStore_Set_Get(t *testing.T) {
 	}
 }
 
+func TestBadgerStore_SetBatch_Get(t *testing.T) {
+	store, path := testBadgerStore(t)
+	defer func() {
+		store.Close()
+		os.RemoveAll(path)
+	}()
+
+	k1, v1 := []byte("hello"), []byte("world")
+	k2, v2 := []byte("foo"), []byte("bar")
+
+	bkv := []BatchKV{
+		{k1, v1},
+		{k2, v2},
+	}
+
+	// Try to set a k/v pair
+	if err := store.SetBatch(bkv); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Try to read it back
+	val, err := store.Get(k1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(val, v1) {
+		t.Fatalf("bad: %v", val)
+	}
+
+	val, err = store.Get(k2)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(val, v2) {
+		t.Fatalf("bad: %v", val)
+	}
+}
+
 func TestBadgerStore_SetUint64_GetUint64(t *testing.T) {
 	store, path := testBadgerStore(t)
 	defer func() {
